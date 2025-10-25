@@ -5,6 +5,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 local TeleportService = game:GetService("TeleportService")
+local UserInputService = game:GetService("UserInputService")
 
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
@@ -58,7 +59,7 @@ tabsFrame.Position = UDim2.new(0, 0, 0, 30)
 tabsFrame.BackgroundTransparency = 1
 
 local mainTabButton = Instance.new("TextButton", tabsFrame)
-mainTabButton.Size = UDim2.new(0.33, 0, 1, 0)
+mainTabButton.Size = UDim2.new(0.25, 0, 1, 0)
 mainTabButton.Position = UDim2.new(0, 0, 0, 0)
 mainTabButton.BackgroundColor3 = Color3.fromRGB(80, 0, 150)
 mainTabButton.BackgroundTransparency = 0.3
@@ -69,8 +70,8 @@ mainTabButton.TextSize = 14
 mainTabButton.AutoButtonColor = false
 
 local statsTabButton = Instance.new("TextButton", tabsFrame)
-statsTabButton.Size = UDim2.new(0.33, 0, 1, 0)
-statsTabButton.Position = UDim2.new(0.33, 0, 0, 0)
+statsTabButton.Size = UDim2.new(0.25, 0, 1, 0)
+statsTabButton.Position = UDim2.new(0.25, 0, 0, 0)
 statsTabButton.BackgroundColor3 = Color3.fromRGB(70, 0, 130)
 statsTabButton.BackgroundTransparency = 0.3
 statsTabButton.Text = "Stats"
@@ -80,8 +81,8 @@ statsTabButton.TextSize = 14
 statsTabButton.AutoButtonColor = false
 
 local teleportTabButton = Instance.new("TextButton", tabsFrame)
-teleportTabButton.Size = UDim2.new(0.34, 0, 1, 0)
-teleportTabButton.Position = UDim2.new(0.66, 0, 0, 0)
+teleportTabButton.Size = UDim2.new(0.25, 0, 1, 0)
+teleportTabButton.Position = UDim2.new(0.5, 0, 0, 0)
 teleportTabButton.BackgroundColor3 = Color3.fromRGB(70, 0, 130)
 teleportTabButton.BackgroundTransparency = 0.3
 teleportTabButton.Text = "Teleport"
@@ -89,6 +90,17 @@ teleportTabButton.Font = Enum.Font.Gotham
 teleportTabButton.TextColor3 = Color3.new(1, 1, 1)
 teleportTabButton.TextSize = 14
 teleportTabButton.AutoButtonColor = false
+
+local characterTabButton = Instance.new("TextButton", tabsFrame)
+characterTabButton.Size = UDim2.new(0.25, 0, 1, 0)
+characterTabButton.Position = UDim2.new(0.75, 0, 0, 0)
+characterTabButton.BackgroundColor3 = Color3.fromRGB(70, 0, 130)
+characterTabButton.BackgroundTransparency = 0.3
+characterTabButton.Text = "Character"
+characterTabButton.Font = Enum.Font.Gotham
+characterTabButton.TextColor3 = Color3.new(1, 1, 1)
+characterTabButton.TextSize = 14
+characterTabButton.AutoButtonColor = false
 
 local mainContent = Instance.new("Frame", main)
 mainContent.Size = UDim2.new(1, -20, 1, -90)
@@ -107,6 +119,12 @@ teleportContent.Size = UDim2.new(1, -20, 1, -90)
 teleportContent.Position = UDim2.new(0, 10, 0, 80)
 teleportContent.BackgroundTransparency = 1
 teleportContent.Visible = false
+
+local characterContent = Instance.new("Frame", main)
+characterContent.Size = UDim2.new(1, -20, 1, -90)
+characterContent.Position = UDim2.new(0, 10, 0, 80)
+characterContent.BackgroundTransparency = 1
+characterContent.Visible = false
 
 local statsScrolling = Instance.new("ScrollingFrame", statsContent)
 statsScrolling.Size = UDim2.new(1, 0, 1, 0)
@@ -130,22 +148,60 @@ local function makeButton(parent, text, yPos)
 	return btn
 end
 
-local espToggle = makeButton(mainContent, "ESP Roles: OFF", 10)
+local function makeToggle(parent, text, yPos)
+	local toggle = Instance.new("TextButton", parent)
+	toggle.Size = UDim2.new(1, 0, 0, 35)
+	toggle.Position = UDim2.new(0, 0, 0, yPos)
+	toggle.BackgroundColor3 = Color3.fromRGB(70, 0, 130)
+	toggle.BackgroundTransparency = 0.3
+	toggle.Text = text
+	toggle.Font = Enum.Font.Gotham
+	toggle.TextColor3 = Color3.new(1, 1, 1)
+	toggle.TextSize = 14
+	toggle.AutoButtonColor = false
+	Instance.new("UICorner", toggle).CornerRadius = UDim.new(0, 8)
+	return toggle
+end
+
+local espToggle = makeToggle(mainContent, "ESP Roles: OFF", 10)
 local giveToolButton = makeButton(mainContent, "Give Kill Tool", 55)
 local killAllButton = makeButton(mainContent, "Kill All", 100)
 local killNearButton = makeButton(mainContent, "Kill Near", 145)
-local speedToggle = makeButton(mainContent, "SpeedBoost: OFF", 190)
+local speedToggle = makeToggle(mainContent, "SpeedBoost: OFF", 190)
 local fpsBoostButton = makeButton(mainContent, "FPS Boost", 235)
 local rejoinButton = makeButton(mainContent, "ReJoin", 280)
 
 local tpHomeButton = makeButton(teleportContent, "TP in home", 10)
 local tpStreetButton = makeButton(teleportContent, "TP in street", 55)
 
+local infEnergyToggle = makeToggle(characterContent, "Inf Energy: OFF", 10)
+local shootGuiToggle = makeToggle(characterContent, "Shoot Gui: OFF", 55)
+
 local espEnabled = false
 local speedEnabled = false
+local infEnergyEnabled = false
+local shootGuiEnabled = false
 local espConnections = {}
 local speedConnection
+local infEnergyConnection
+local shootGuiConnection
 local currentTab = "Main"
+
+local shootCircle = Instance.new("TextButton")
+shootCircle.Size = UDim2.new(0, 80, 0, 80)
+shootCircle.Position = UDim2.new(0.5, -40, 0.8, -40)
+shootCircle.BackgroundColor3 = Color3.new(0, 0, 1)
+shootCircle.BackgroundTransparency = 0.3
+shootCircle.Text = "Shoot"
+shootCircle.Font = Enum.Font.GothamBold
+shootCircle.TextColor3 = Color3.new(1, 1, 1)
+shootCircle.TextSize = 14
+shootCircle.AutoButtonColor = false
+shootCircle.Visible = false
+shootCircle.Active = false
+shootCircle.Draggable = true
+Instance.new("UICorner", shootCircle).CornerRadius = UDim.new(1, 0)
+shootCircle.Parent = gui
 
 local function buttonEffect(button)
 	local original = button.BackgroundColor3
@@ -158,6 +214,7 @@ local function switchTab(tabName)
 	mainContent.Visible = false
 	statsContent.Visible = false
 	teleportContent.Visible = false
+	characterContent.Visible = false
 	
 	mainTabButton.BackgroundColor3 = Color3.fromRGB(70, 0, 130)
 	mainTabButton.Font = Enum.Font.Gotham
@@ -165,6 +222,8 @@ local function switchTab(tabName)
 	statsTabButton.Font = Enum.Font.Gotham
 	teleportTabButton.BackgroundColor3 = Color3.fromRGB(70, 0, 130)
 	teleportTabButton.Font = Enum.Font.Gotham
+	characterTabButton.BackgroundColor3 = Color3.fromRGB(70, 0, 130)
+	characterTabButton.Font = Enum.Font.Gotham
 	
 	if tabName == "Main" then
 		mainContent.Visible = true
@@ -178,6 +237,10 @@ local function switchTab(tabName)
 		teleportContent.Visible = true
 		teleportTabButton.BackgroundColor3 = Color3.fromRGB(80, 0, 150)
 		teleportTabButton.Font = Enum.Font.GothamBold
+	elseif tabName == "Character" then
+		characterContent.Visible = true
+		characterTabButton.BackgroundColor3 = Color3.fromRGB(80, 0, 150)
+		characterTabButton.Font = Enum.Font.GothamBold
 	end
 	currentTab = tabName
 end
@@ -194,6 +257,10 @@ teleportTabButton.MouseButton1Click:Connect(function()
 	switchTab("Teleport")
 end)
 
+characterTabButton.MouseButton1Click:Connect(function()
+	switchTab("Character")
+end)
+
 local function teleportToHome()
 	local character = LocalPlayer.Character
 	if character and character:FindFirstChild("HumanoidRootPart") then
@@ -206,6 +273,88 @@ local function teleportToStreet()
 	if character and character:FindFirstChild("HumanoidRootPart") then
 		character.HumanoidRootPart.CFrame = CFrame.new(-33.97, 3.81, 36.73)
 	end
+end
+
+local function enableInfEnergy()
+	infEnergyEnabled = true
+	infEnergyToggle.Text = "Inf Energy: ON"
+	
+	infEnergyConnection = RunService.Heartbeat:Connect(function()
+		if ReplicatedStorage:FindFirstChild("EventsFolder") and ReplicatedStorage.EventsFolder:FindFirstChild("ChangeEnergyEvent") then
+			ReplicatedStorage.EventsFolder.ChangeEnergyEvent:FireServer(table.unpack({
+				[1] = LocalPlayer,
+				[2] = 4,
+			}))
+		end
+	end)
+end
+
+local function disableInfEnergy()
+	infEnergyEnabled = false
+	infEnergyToggle.Text = "Inf Energy: OFF"
+	
+	if infEnergyConnection then
+		infEnergyConnection:Disconnect()
+		infEnergyConnection = nil
+	end
+end
+
+local function findNearestVisitor()
+	local character = LocalPlayer.Character
+	if character and character:FindFirstChild("HumanoidRootPart") then
+		local localPos = character.HumanoidRootPart.Position
+		local nearestVisitor = nil
+		local nearestDistance = math.huge
+		
+		for _, player in pairs(Players:GetPlayers()) do
+			if player ~= LocalPlayer then
+				local roleValue = player:FindFirstChild("PlayerRole")
+				if roleValue and roleValue.Value == "Visitor" then
+					local targetChar = player.Character
+					if targetChar and targetChar:FindFirstChild("HumanoidRootPart") then
+						local distance = (localPos - targetChar.HumanoidRootPart.Position).Magnitude
+						if distance < nearestDistance then
+							nearestDistance = distance
+							nearestVisitor = player
+						end
+					end
+				end
+			end
+		end
+		
+		return nearestVisitor
+	end
+	return nil
+end
+
+local function enableShootGui()
+	shootGuiEnabled = true
+	shootGuiToggle.Text = "Shoot Gui: ON"
+	shootCircle.Visible = true
+	shootCircle.Active = true
+	
+	shootCircle.MouseButton1Click:Connect(function()
+		local nearestVisitor = findNearestVisitor()
+		if nearestVisitor then
+			local character = nearestVisitor.Character
+			if character and character:FindFirstChild("HumanoidRootPart") then
+				local pos = character.HumanoidRootPart.Position
+				if ReplicatedStorage:FindFirstChild("RemoteEvents") and ReplicatedStorage.RemoteEvents:FindFirstChild("ForGuns") and ReplicatedStorage.RemoteEvents.ForGuns:FindFirstChild("ShotGun") then
+					ReplicatedStorage.RemoteEvents.ForGuns.ShotGun:FireServer(table.unpack({
+						[1] = Vector3.new(pos.X, pos.Y, pos.Z),
+						[2] = false,
+					}))
+				end
+			end
+		end
+	end)
+end
+
+local function disableShootGui()
+	shootGuiEnabled = false
+	shootGuiToggle.Text = "Shoot Gui: OFF"
+	shootCircle.Visible = false
+	shootCircle.Active = false
 end
 
 local function updateESP()
@@ -553,6 +702,24 @@ end)
 tpStreetButton.MouseButton1Click:Connect(function()
 	buttonEffect(tpStreetButton)
 	teleportToStreet()
+end)
+
+infEnergyToggle.MouseButton1Click:Connect(function()
+	buttonEffect(infEnergyToggle)
+	if infEnergyEnabled then
+		disableInfEnergy()
+	else
+		enableInfEnergy()
+	end
+end)
+
+shootGuiToggle.MouseButton1Click:Connect(function()
+	buttonEffect(shootGuiToggle)
+	if shootGuiEnabled then
+		disableShootGui()
+	else
+		enableShootGui()
+	end
 end)
 
 updateStats()
